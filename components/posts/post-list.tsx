@@ -12,7 +12,9 @@ import {
   Trash2,
   Calendar,
   Eye,
-  Clock
+  Clock,
+  ThumbsUp,
+  ThumbsDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -168,14 +170,15 @@ export default function PostList({
                   </div>
                 )}
                 <CardHeader>
-                  <CardTitle className="line-clamp-2">
-                    <Link 
-                      href={`/posts/${post.id}`}
-                      className="hover:text-primary transition-colors"
-                    >
-                      {post.title}
-                    </Link>
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="line-clamp-1">{post.title}</CardTitle>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <ThumbsUp className="h-4 w-4" />
+                      <span>{post.likes}</span>
+                      <ThumbsDown className="h-4 w-4" />
+                      <span>{post.dislikes}</span>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">

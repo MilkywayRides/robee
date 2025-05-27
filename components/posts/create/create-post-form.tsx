@@ -78,38 +78,47 @@ export function CreatePostForm() {
         return;
       }
 
+      // Map scheduledAt to scheduledDate for backend compatibility
+      const postData = {
+        ...formData,
+        scheduledDate: formData.scheduledAt,
+      };
+      delete postData.scheduledAt;
+
       const response = await fetch("/api/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(postData),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save post");
+        let errorMsg = "Failed to save post";
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg = errText;
+        } catch {}
+        throw new Error(errorMsg);
       }
 
       const post = await response.json();
-      
       setUnsavedChanges(false);
       setLastSaved(new Date());
-      
       toast.success(
         formData.status === PostStatus.PUBLISHED 
           ? "Post published successfully!"
           : formData.status === PostStatus.SCHEDULED
-          ? "Post scheduled successfully!"
-          : "Draft saved successfully!"
+            ? "Post scheduled successfully!"
+            : "Draft saved successfully!"
       );
-
       if (formData.status === PostStatus.PUBLISHED) {
         router.push("/dashboard/posts");
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save error:", error);
-      toast.error("Failed to save post");
+      toast.error(error?.message || "Failed to save post");
     } finally {
       setIsLoading(false);
     }

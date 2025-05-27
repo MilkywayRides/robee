@@ -17,13 +17,6 @@ async function getPublishedPosts() {
         createdAt: "desc",
       },
       include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
         tags: true,
       },
     });
@@ -89,7 +82,7 @@ export default async function PostsPage() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          <span>{post.author.name || "Anonymous"}</span>
+                          <span>{"Anonymous"}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />

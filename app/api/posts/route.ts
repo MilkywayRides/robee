@@ -52,13 +52,8 @@ export async function POST(req: Request) {
         },
       },
       include: {
-        author: {
-          select: {
-            name: true,
-            image: true,
-          },
-        },
         tags: true,
+        // feedback: true, // Uncomment if you want feedback included
       },
     });
 
@@ -71,33 +66,71 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    console.log("Starting GET /api/posts request");
+    const session = await auth();
+    console.log("Auth session:", session?.user?.id ? "Authenticated" : "Not authenticated");
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    console.log("Request params:", { status });
 
-    const where = status === "published"
-      ? { status: PostStatus.PUBLISHED }
-      : {};
-
-    const posts = await db.post.findMany({
-      where,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
+    // If user is authenticated, show their posts
+    if (session?.user?.id) {
+      console.log("Fetching posts for user:", session.user.id);
+      try {
+        const posts = await db.post.findMany({
+          where: {
+            authorId: session.user.id,
+            ...(status && status !== "all" ? { status: status as PostStatus } : {}),
           },
-        },
-        tags: true,
-      },
-    });
+          include: {
+            tags: true,
+            feedback: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+        console.log(`Found ${posts.length} posts for user`);
+        return NextResponse.json(posts);
+      } catch (dbError) {
+        console.error("Database error in authenticated query:", dbError);
+        return NextResponse.json(
+          { error: "Database error occurred", details: dbError instanceof Error ? dbError.message : "Unknown database error" },
+          { status: 500 }
+        );
+      }
+    }
 
-    return NextResponse.json(posts);
+    // For unauthenticated users, only show published posts
+    console.log("Fetching published posts for unauthenticated user");
+    try {
+      const posts = await db.post.findMany({
+        where: {
+          status: PostStatus.PUBLISHED,
+        },
+        include: {
+          tags: true,
+          feedback: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      console.log(`Found ${posts.length} published posts`);
+      return NextResponse.json(posts);
+    } catch (dbError) {
+      console.error("Database error in unauthenticated query:", dbError);
+      return NextResponse.json(
+        { error: "Database error occurred", details: dbError instanceof Error ? dbError.message : "Unknown database error" },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error("[POSTS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("[POSTS_GET] Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }

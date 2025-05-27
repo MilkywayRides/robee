@@ -63,7 +63,7 @@ export const UpdateProfileSchema = z.object({
   email: z.string().email({
     message: 'Valid email is required.'
   }),
-  role: z.enum([UserRole.ADMIN, UserRole.USER]),
+  role: z.enum(['ADMIN', 'USER']),
   isTwoFactorEnabled: z.boolean()
 });
 

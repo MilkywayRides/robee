@@ -27,15 +27,41 @@ export default function PostsPage() {
     const fetchPosts = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/posts?status=${activeTab}`);
-        if (!response.ok) throw new Error("Failed to fetch posts");
+        console.log("Fetching posts with status:", activeTab);
+        const response = await fetch(`/api/posts?status=${activeTab}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
         const data = await response.json();
+        console.log("Response data:", data);
+
+        if (!response.ok) {
+          const errorMessage = data.error || data.details || response.statusText;
+          console.error("Failed to fetch posts:", {
+            status: response.status,
+            statusText: response.statusText,
+            error: data,
+          });
+          throw new Error(`Failed to fetch posts: ${errorMessage}`);
+        }
+
+        if (!Array.isArray(data)) {
+          console.error("Invalid response format:", data);
+          throw new Error("Invalid response format from server");
+        }
+
+        console.log("Setting posts:", data.length);
         setPosts(data);
       } catch (error) {
-        toast.error("Failed to load posts");
-        console.error("Error fetching posts:", error);
+        console.error("Error in fetchPosts:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to load posts. Please try again later.");
+        setPosts([]); // Reset posts on error
       } finally {
-        setTimeout(() => setIsLoading(false), 300);
+        setIsLoading(false);
       }
     };
 
@@ -56,7 +82,11 @@ export default function PostsPage() {
             <PostListSkeleton />
           ) : (
             <PostList
-              posts={posts}
+              posts={posts.map(post => ({
+                ...post,
+                likes: post.feedback?.filter(f => f.type === "LIKE").length || 0,
+                dislikes: post.feedback?.filter(f => f.type === "DISLIKE").length || 0,
+              }))}
               activeTab={activeTab}
               searchQuery={searchQuery}
               onSearch={setSearchQuery}

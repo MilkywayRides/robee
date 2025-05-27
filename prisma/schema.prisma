@@ -3,11 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  directUrl  = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+// Enums
 enum UserRole {
   ADMIN
   USER
@@ -19,94 +19,28 @@ enum PostStatus {
   SCHEDULED
 }
 
-model User {
-  id                     String                  @id @default(cuid())
-  name                   String?
-  email                  String?                 @unique
-  tempEmail              String?
-  emailVerified          DateTime?
-  image                  String?
-  password               String?
-  role                   UserRole                @default(USER)
-  accounts               Account[]
-  isTwoFactorEnabled     Boolean                 @default(false)
-  twoFactorConfirmation  TwoFactorConfirmation?
-  posts                  Post[]                  @relation("UserPosts")
-  projects               Project[]               @relation("UserProjects")
-  createdAt              DateTime                @default(now())
+enum FeedbackType {
+  LIKE
+  DISLIKE
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model VerificationToken {
-  id            String   @id @default(cuid())
-  userId        String
-  token         String   @unique
-  isUpdateEmail Boolean  @default(false)
-  expires       DateTime
-
-  @@unique([userId, token])
-}
-
-model PasswordResetToken {
-  id      String   @id @default(cuid())
-  email   String
-  token   String   @unique
-  expires DateTime
-
-  @@unique([email, token])
-}
-
-model TwoFactorToken {
-  id      String   @id @default(cuid())
-  email   String
-  token   String   @unique
-  expires DateTime
-
-  @@unique([email, token])
-}
-
-model TwoFactorConfirmation {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId])
-}
-
+// Your models
 model Post {
-  id          String      @id @default(cuid())
+  id          String         @id @default(cuid())
   title       String
-  excerpt     String?     @db.Text
+  excerpt     String?        @db.Text
   content     Json?
-  status      PostStatus  @default(DRAFT)
+  status      PostStatus     @default(DRAFT)
   coverImage  String?
   authorId    String
-  author      User        @relation("UserPosts", fields: [authorId], references: [id])
   tags        Tag[]
-  views       Int         @default(0)
+  views       Int            @default(0)
   slug        String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   publishedAt DateTime?
   scheduledAt DateTime?
+  feedback    PostFeedback[]
 
   @@index([authorId])
 }
@@ -121,7 +55,7 @@ model Project {
   id           String   @id @default(uuid())
   name         String
   description  String
-  visibility   String   @default("private") // enum suggested
+  visibility   String   @default("private")
   isPaid       Boolean  @default(false)
   price        Float?
   createdById  String
@@ -130,7 +64,18 @@ model Project {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  createdBy    User     @relation("UserProjects", fields: [createdById], references: [id])
-
   @@index([createdById])
+}
+
+model PostFeedback {
+  id        String        @id @default(cuid())
+  postId    String
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  type      FeedbackType
+  createdAt DateTime      @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
 }

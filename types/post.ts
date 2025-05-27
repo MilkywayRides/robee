@@ -5,6 +5,14 @@ export interface Tag {
   name: string;
 }
 
+export interface PostFeedback {
+  id: string;
+  type: "LIKE" | "DISLIKE";
+  userId: string;
+  postId: string;
+  createdAt: Date;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -24,4 +32,7 @@ export interface Post {
     name: string | null;
     image: string | null;
   };
+  feedback?: PostFeedback[];
+  likes?: number;
+  dislikes?: number;
 }
